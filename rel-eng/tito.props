@@ -2,3 +2,16 @@
 lib_dir = rel-eng/lib
 default_builder = tito.builder.Builder
 default_tagger = tito.tagger.VersionTagger
+
+[katello-thirdparty-pulp-rhel6]
+disttag = .el6
+blacklist =
+scl = ruby193
+
+[katello-thirdparty-pulp-fedora18]
+disttag = .fc18
+blacklist =
+
+[katello-thirdparty-pulp-fedora19]
+disttag = .fc19
+blacklist =

@@ -29,7 +29,7 @@
 # ---- Pulp Platform -----------------------------------------------------------
 
 Name: pulp
-Version: 2.2.0
+Version: 2.2.1
 Release: 1%{?dist}
 Summary: An application for managing software content
 Group: Development/Languages
@@ -432,6 +432,9 @@ exit 0
 %endif
 
 %changelog
+* Wed Oct 09 2013 Jeff Ortel <jortel@redhat.com> 2.2.1-1
+- Pulp rebuild
+
 * Fri Sep 06 2013 Barnaby Court <bcourt@redhat.com> 2.2.0-1
 - Pulp rebuild
 

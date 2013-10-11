@@ -11,7 +11,9 @@
 # have received a copy of GPLv2 along with this software; if not, see
 # http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.
 
-from datetime import datetime, timedelta
+from datetime import datetime
+import pickle
+from celery.beat import ScheduleEntry
 
 from pulp.common import dateutils
 from pulp.common.tags import resource_tag
@@ -66,7 +68,7 @@ class QueuedCallGroup(Model):
         self.completed_calls = 0
 
 
-class ScheduledCall(Model):
+class OldScheduledCall(Model):
     """
     Serialized scheduled call request
     """
@@ -99,6 +101,50 @@ class ScheduledCall(Model):
         # run-time call group metadata for tracking success or failure
         self.call_count = 0
         self.call_exit_states = []
+
+
+class ScheduledCall(Model):
+    """
+    Serialized scheduled call request
+    """
+
+    collection_name = 'scheduled_calls'
+    unique_indices = ()
+    search_indices = ('task.tags', 'last_run')
+
+    def __init__(self, schedule_entry, enabled=True, failure_threshold=None, last_run=None):
+        """
+        :type  schedule_entry:  celery.beat.ScheduleEntry
+
+        """
+        super(ScheduledCall, self).__init__()
+        # add custom scheduled call tag to call request
+        schedule_tag = resource_tag(dispatch_constants.RESOURCE_SCHEDULE_TYPE, str(self._id))
+        schedule_entry.task.tags.append(schedule_tag)
+
+        self.name = schedule_entry.name
+        self.task = pickle.dumps(schedule_entry.task)
+        self.last_run_at = schedule_entry.last_run_at
+        self.total_run_count = schedule_entry.total_run_count
+        self.schedule = pickle.dumps(schedule_entry.schedule)
+        self.args = pickle.dumps(schedule_entry.args)
+        self.kwargs = pickle.dumps(schedule_entry.kwargs)
+        self.app = pickle.dumps(schedule_entry.app)
+
+        self.enabled = enabled
+
+        self.failure_threshold = failure_threshold
+        self.consecutive_failures = 0
+
+        # scheduling fields
+        self.first_run = None # will be calculated and set by the scheduler
+        self.remaining_runs = dateutils.parse_iso8601_interval(schedule_entry.schedule)[2]
+
+    def as_schedule_entry(self):
+        return ScheduleEntry(self.name, self.task, self.last_run_at, self.total_run_count,
+                             pickle.loads(self.schedule), pickle.loads(self.args),
+                             pickle.loads(self.kwargs), self.options,
+                             self.relative, pickle.loads(self.app))
 
 
 class ArchivedCall(Model):
